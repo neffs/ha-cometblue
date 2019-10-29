@@ -211,7 +211,7 @@ class CometBlue(object):
                 _LOGGER.debug("Second connection try to %s failed: %s", self._address, ex2)
                 raise
                 
-        self._conn.writeCharacteristic(PASSWORD_HANDLE,struct.pack(_PIN_STRUCT_PACKING, self._pin))
+        self._conn.writeCharacteristic(PASSWORD_HANDLE, struct.pack(_PIN_STRUCT_PACKING, self._pin), withResponse=True)
 
     def disconnect(self):
         from bluepy import btle
