@@ -30,7 +30,7 @@ from sys import stderr
 from homeassistant.components.climate import ClimateDevice, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
-#    HVAC_MODE_AUTO,
+    HVAC_MODE_AUTO,
 #    HVAC_MODE_OFF,
 #    PRESET_AWAY,
 #    PRESET_HOME,
@@ -80,16 +80,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     add_devices(devices)
 
 
-PASSWORD_HANDLE = 0x47
-TEMPERATURE_HANDLE = 0x3f
-_TEMPERATURES_STRUCT_PACKING = '<bbbbbbb'
-_PIN_STRUCT_PACKING = '<I'
-
 
 class CometBlueThermostat(ClimateDevice):
     """Representation of a CometBlue thermostat."""
 
     def __init__(self, _mac, _name, _pin=None):
+        from .cometblue import CometBlue
         """Initialize the thermostat."""
         self._mac = _mac
         self._name = _name
@@ -160,16 +156,20 @@ class CometBlueThermostat(ClimateDevice):
     @property
     def hvac_mode(self):
         #return self._hvac_mode
-        return HVAC_MODE_HEAT
+        if self._thermostat.manual_mode:
+            return HVAC_MODE_HEAT
+        else:
+            return HVAC_MODE_AUTO
 
     def set_hvac_mode(self,hvac_mode):
-        #self._hvac_mode = hvac_mode 
-        pass
+        if hvac_mode==HVAC_MODE_HEAT:
+            self._thermostat.manual_mode = True
+        if hvac_mode==HVAC_MODE_AUTO:
+            self._thermostat.manual_mode = False
 
     @property
     def hvac_modes(self):
-        return (HVAC_MODE_HEAT,)
-        #return (HVAC_MODE_HEAT, HVAC_MODE_OFF, HVAC_MODE_AUTO)
+        return (HVAC_MODE_HEAT, HVAC_MODE_AUTO)
 
     def update(self):
         """Update the data from the thermostat."""
@@ -185,90 +185,3 @@ class CometBlueThermostat(ClimateDevice):
             _LOGGER.debug("Ignoring Update for {}".format(self._mac))
 
 
-class CometBlue(object):
-    """CometBlue Thermostat """
-    def __init__(self, address, pin):
-        from bluepy import btle
-        super(CometBlue, self).__init__()
-        self._address = address
-        self._conn = btle.Peripheral()
-        self._pin = pin
-        self._manual_temp = None
-        self._cur_temp = None
-        self._temperature = None
-        self.available = False
-#        self.update()
-
-    def connect(self):
-        from bluepy import btle
-        try:
-            self._conn.connect(self._address)
-        except btle.BTLEException as ex:
-            _LOGGER.debug("Unable to connect to the device %s, retrying: %s", self._address, ex)
-            try:
-                self._conn.connect(self._address)
-            except Exception as ex2:
-                _LOGGER.debug("Second connection try to %s failed: %s", self._address, ex2)
-                raise
-                
-        self._conn.writeCharacteristic(PASSWORD_HANDLE, struct.pack(_PIN_STRUCT_PACKING, self._pin), withResponse=True)
-
-    def disconnect(self):
-        from bluepy import btle
-        
-        self._conn.disconnect()
-        self._conn = btle.Peripheral()
-
-    def should_update(self):
-        return self._temperature != None #or self._cur_temp == None
-
-    @property
-    def manual_temperature(self):
-        if self._manual_temp:
-            return self._manual_temp / 2.0
-        else:
-            return None
- 
-    @property
-    def current_temperature(self):
-        if self._cur_temp:
-            return self._cur_temp / 2.0
-        else:
-            return None 
-
-
-    def update(self):
-        from bluepy import btle
-        _LOGGER.debug("Connecting to device %s", self._address)
-        self.connect()
-        try:
-            data = self._conn.readCharacteristic(TEMPERATURE_HANDLE)
-            self._cur_temp, self._manual_temp, self._target_low, self._target_high, self._offset_temp, \
-                    self._window_open_detect, self._window_open_minutes = struct.unpack(
-                            _TEMPERATURES_STRUCT_PACKING, data)
-            if self._temperature:
-                _LOGGER.debug("Updating Temperature for device %s to %d", self._address, self._temperature)
-                self.write_temperature()
-            self.available = True
-            
-        except btle.BTLEGattError:
-            _LOGGER.error("Can't read cometblue data (%s). Did you set the correct PIN?", self._address)
-            self.available = False
-        finally:
-            self.disconnect()
-            _LOGGER.debug("Disconnected from device %s", self._address)
-
- 
-    @manual_temperature.setter
-    def manual_temperature(self, temperature):
-        self._temperature = temperature
-
-    def write_temperature(self):
-        self._manual_temp = int(self._temperature * 2.0)
-        data = struct.pack(
-                    _TEMPERATURES_STRUCT_PACKING,
-                    -128, self._manual_temp,
-                    -128, -128, -128, -128, -128)
-        self._conn.writeCharacteristic(TEMPERATURE_HANDLE,data)
-        
-        self._temperature = None
