@@ -18,23 +18,12 @@ climate cometblue:
 import logging
 from datetime import timedelta
 from datetime import datetime
-import threading
 import voluptuous as vol
-
-import time
-import struct
-
-
-from sys import stderr
 
 from homeassistant.components.climate import ClimateDevice, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_AUTO,
-#    HVAC_MODE_OFF,
-#    PRESET_AWAY,
-#    PRESET_HOME,
-#    PRESET_NONE,
     SUPPORT_TARGET_TEMPERATURE,
 )
 from homeassistant.const import (
@@ -47,8 +36,6 @@ from homeassistant.const import (
     PRECISION_HALVES)
 
 import homeassistant.helpers.config_validation as cv
-
-REQUIREMENTS = ['bluepy>=1.3.0']
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(10)
@@ -66,8 +53,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         vol.Schema({cv.string: DEVICE_SCHEMA}),
 })
 
-SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE )
-#SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE)
+SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE)
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -85,14 +71,14 @@ class CometBlueThermostat(ClimateDevice):
     """Representation of a CometBlue thermostat."""
 
     def __init__(self, _mac, _name, _pin=None):
-        from .cometblue import CometBlue
+        from cometblue_lite import CometBlue
         """Initialize the thermostat."""
         self._mac = _mac
         self._name = _name
         self._pin = _pin
         self._thermostat = CometBlue(_mac, _pin)
         self._lastupdate = datetime.now() - MIN_TIME_BETWEEN_UPDATES
-        #self._hvac_mode = HVAC_MODE_HEAT
+#        self.update()
 
     @property
     def unique_id(self):
@@ -155,7 +141,6 @@ class CometBlueThermostat(ClimateDevice):
 
     @property
     def hvac_mode(self):
-        #return self._hvac_mode
         if self._thermostat.manual_mode:
             return HVAC_MODE_HEAT
         else:
@@ -164,7 +149,7 @@ class CometBlueThermostat(ClimateDevice):
     def set_hvac_mode(self,hvac_mode):
         if hvac_mode==HVAC_MODE_HEAT:
             self._thermostat.manual_mode = True
-        if hvac_mode==HVAC_MODE_AUTO:
+        elif hvac_mode==HVAC_MODE_AUTO:
             self._thermostat.manual_mode = False
 
     @property
@@ -173,12 +158,12 @@ class CometBlueThermostat(ClimateDevice):
 
     def update(self):
         """Update the data from the thermostat."""
-        _LOGGER.info("Update called {}".format(self._mac))
         now = datetime.now()
         if ( 
             self._thermostat.should_update() or
             (self._lastupdate and self._lastupdate + MIN_TIME_BETWEEN_UPDATES < now)
         ):
+            _LOGGER.info("Updating status for {}".format(self._mac))
             self._thermostat.update()
             self._lastupdate = datetime.now()
         else: 
