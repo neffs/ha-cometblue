@@ -33,6 +33,7 @@ from homeassistant.const import (
     CONF_DEVICES,
     TEMP_CELSIUS,
     ATTR_TEMPERATURE,
+    ATTR_BATTERY_LEVEL,
     PRECISION_HALVES)
 
 import homeassistant.helpers.config_validation as cv
@@ -155,6 +156,13 @@ class CometBlueThermostat(ClimateDevice):
     @property
     def hvac_modes(self):
         return (HVAC_MODE_HEAT, HVAC_MODE_AUTO)
+
+    @property
+    def device_state_attributes(self):
+        """Return the device specific state attributes."""
+        return {
+            ATTR_BATTERY_LEVEL: self._thermostat.battery_level
+        }
 
     def update(self):
         """Update the data from the thermostat."""
