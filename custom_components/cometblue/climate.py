@@ -23,8 +23,10 @@ from bluepy.btle import BTLEException
 
 from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
+    ATTR_HVAC_MODE,
     HVAC_MODE_HEAT,
     HVAC_MODE_AUTO,
+    HVAC_MODE_OFF,
     SUPPORT_TARGET_TEMPERATURE,
     DOMAIN,
 )
@@ -142,11 +144,14 @@ class CometBlueThermostat(ClimateEntity):
 
     def set_temperature(self, **kwargs):
         """Set new target temperature."""
-        temperature = kwargs.get(ATTR_TEMPERATURE)
-        if temperature is None:
-            return
-        _LOGGER.debug("Temperature to set: {}, {}".format(temperature, kwargs))
-        self._thermostat.target_temperature = temperature
+        if ATTR_HVAC_MODE in kwargs:
+            hvac_mode = kwargs.get(ATTR_HVAC_MODE)
+            self.set_hvac_mode(hvac_mode)
+
+        if ATTR_TEMPERATURE in kwargs:
+            temperature = kwargs.get(ATTR_TEMPERATURE)
+            _LOGGER.debug("Temperature to set: {}".format(temperature))
+            self._thermostat.target_temperature = temperature
 
     @property
     def min_temp(self):
@@ -160,24 +165,35 @@ class CometBlueThermostat(ClimateEntity):
 
     @property
     def hvac_mode(self):
-        if self._thermostat.manual_mode:
+        if self._thermostat.is_off:
+            return HVAC_MODE_OFF
+        elif self._thermostat.manual_mode:
             return HVAC_MODE_HEAT
         else:
             return HVAC_MODE_AUTO
 
     def set_hvac_mode(self, hvac_mode):
-        if hvac_mode == HVAC_MODE_HEAT:
-            self._thermostat.manual_mode = True
-        elif hvac_mode == HVAC_MODE_AUTO:
+        if hvac_mode == self.hvac_mode:
+            return
+
+        _LOGGER.debug("HVAC_MODE to set: {}".format(hvac_mode))
+        if self.hvac_mode == HVAC_MODE_OFF:
+            self._thermostat.is_off = False
+
+        if hvac_mode == HVAC_MODE_AUTO:
             self._thermostat.manual_mode = False
+        elif hvac_mode == HVAC_MODE_HEAT:
+            self._thermostat.manual_mode = True
+        else:
+            self._thermostat.is_off = True
 
     @property
     def hvac_modes(self):
         if self._thermostat.firmware_rev == "GEN34BLE":
             # GENIUS BLE 100 does not support manual mode
-            return (HVAC_MODE_AUTO,)
+            return HVAC_MODE_AUTO, HVAC_MODE_OFF
         else:
-            return HVAC_MODE_HEAT, HVAC_MODE_AUTO
+            return HVAC_MODE_HEAT, HVAC_MODE_AUTO, HVAC_MODE_OFF
 
     @property
     def device_state_attributes(self):
@@ -206,4 +222,3 @@ class CometBlueThermostat(ClimateEntity):
                 self._lastupdate = datetime.now()
             except BTLEException as ex:
                 _LOGGER.warning("Updating the state for {} failed: {}".format(self._mac, ex))
-
