@@ -44,6 +44,7 @@ _LOGGER.setLevel(10)
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=300)
 
+ATTR_OFFSET = 'offset'
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_MAC): cv.string,
@@ -55,7 +56,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         vol.Schema({cv.string: DEVICE_SCHEMA}),
 })
 
-SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE)
+SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -66,7 +67,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         devices.append(dev)
 
     add_devices(devices)
-
 
 
 class CometBlueThermostat(ClimateEntity):
@@ -80,7 +80,6 @@ class CometBlueThermostat(ClimateEntity):
         self._pin = _pin
         self._thermostat = CometBlue(_mac, _pin)
         self._lastupdate = datetime.now() - MIN_TIME_BETWEEN_UPDATES
-#        self.update()
 
     @property
     def unique_id(self):
@@ -122,13 +121,12 @@ class CometBlueThermostat(ClimateEntity):
         """Return the temperature we try to reach."""
         return self._thermostat.target_temperature
 
-
     def set_temperature(self, **kwargs):
         """Set new target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-        _LOGGER.debug("Temperature to set: {}".format(temperature))
+        _LOGGER.debug("Temperature to set: {}, {}".format(temperature, kwargs))
         self._thermostat.target_temperature = temperature
 
     @property
@@ -148,10 +146,10 @@ class CometBlueThermostat(ClimateEntity):
         else:
             return HVAC_MODE_AUTO
 
-    def set_hvac_mode(self,hvac_mode):
-        if hvac_mode==HVAC_MODE_HEAT:
+    def set_hvac_mode(self, hvac_mode):
+        if hvac_mode == HVAC_MODE_HEAT:
             self._thermostat.manual_mode = True
-        elif hvac_mode==HVAC_MODE_AUTO:
+        elif hvac_mode == HVAC_MODE_AUTO:
             self._thermostat.manual_mode = False
 
     @property
@@ -160,7 +158,7 @@ class CometBlueThermostat(ClimateEntity):
             # GENIUS BLE 100 does not support manual mode
             return (HVAC_MODE_AUTO,)
         else:
-            return (HVAC_MODE_HEAT, HVAC_MODE_AUTO)
+            return HVAC_MODE_HEAT, HVAC_MODE_AUTO
 
     @property
     def device_state_attributes(self):
@@ -169,7 +167,8 @@ class CometBlueThermostat(ClimateEntity):
             ATTR_BATTERY_LEVEL: self._thermostat.battery_level,
             "model_type": self._thermostat.firmware_rev,
             "target_high": self._thermostat.target_temperature_high,
-            "target_low": self._thermostat.target_temperature_low
+            "target_low": self._thermostat.target_temperature_low,
+            ATTR_OFFSET: self._thermostat.offset_temperature,
         }
 
     def update(self):
