@@ -119,7 +119,7 @@ class CometBlueThermostat(ClimateDevice):
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        return self._thermostat.manual_temperature
+        return self._thermostat.target_temperature
 
 
     def set_temperature(self, **kwargs):
@@ -128,7 +128,7 @@ class CometBlueThermostat(ClimateDevice):
         if temperature is None:
             return
         _LOGGER.debug("Temperature to set: {}".format(temperature))
-        self._thermostat.manual_temperature = temperature
+        self._thermostat.target_temperature = temperature
 
     @property
     def min_temp(self):
@@ -176,5 +176,4 @@ class CometBlueThermostat(ClimateDevice):
             self._lastupdate = datetime.now()
         else: 
             _LOGGER.debug("Ignoring Update for {}".format(self._mac))
-
 
