@@ -26,6 +26,7 @@ from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_AUTO,
     SUPPORT_TARGET_TEMPERATURE,
+    DOMAIN,
 )
 from homeassistant.const import (
     CONF_NAME,
@@ -94,6 +95,20 @@ class CometBlueThermostat(ClimateEntity):
     def available(self) -> bool:
         """Return if thermostat is available."""
         return self._thermostat.available
+
+    @property
+    def device_info(self):
+        """Return device info."""
+        versions = [self._thermostat.firmware_rev, self._thermostat.software_rev]
+        device_info = {
+            "identifiers": {(DOMAIN, self.unique_id)},
+            "name": self.name,
+            "manufacturer": self._thermostat.manufacturer,
+            "model": self._thermostat.model,
+            "sw_version": ", ".join([rev for rev in versions if rev]),
+        }
+
+        return {k: v for k, v in device_info.items() if v}
 
     @property
     def supported_features(self):
