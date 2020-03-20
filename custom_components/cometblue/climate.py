@@ -35,6 +35,7 @@ from homeassistant.const import (
     TEMP_CELSIUS,
     ATTR_TEMPERATURE,
     ATTR_BATTERY_LEVEL,
+    ATTR_LOCKED,
     PRECISION_HALVES)
 
 import homeassistant.helpers.config_validation as cv
@@ -44,7 +45,10 @@ _LOGGER.setLevel(10)
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=300)
 
+ATTR_BATTERY_LOW = 'battery_low'
 ATTR_OFFSET = 'offset'
+ATTR_STATUS = 'status'
+ATTR_WINDOW_OPEN = 'window_open'
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_MAC): cv.string,
@@ -165,10 +169,14 @@ class CometBlueThermostat(ClimateEntity):
         """Return the device specific state attributes."""
         return {
             ATTR_BATTERY_LEVEL: self._thermostat.battery_level,
+            ATTR_BATTERY_LOW: self._thermostat.low_battery,
+            ATTR_LOCKED: self._thermostat.locked,
+            ATTR_OFFSET: self._thermostat.offset_temperature,
+            ATTR_STATUS: self._thermostat.status,
+            ATTR_WINDOW_OPEN: self._thermostat.window_open,
             "model_type": self._thermostat.firmware_rev,
             "target_high": self._thermostat.target_temperature_high,
             "target_low": self._thermostat.target_temperature_low,
-            ATTR_OFFSET: self._thermostat.offset_temperature,
         }
 
     def update(self):
