@@ -155,13 +155,20 @@ class CometBlueThermostat(ClimateDevice):
 
     @property
     def hvac_modes(self):
-        return (HVAC_MODE_HEAT, HVAC_MODE_AUTO)
+        if self._thermostat.firmware_rev == "GEN34BLE":
+            # GENIUS BLE 100 does not support manual mode
+            return (HVAC_MODE_AUTO,)
+        else:
+            return (HVAC_MODE_HEAT, HVAC_MODE_AUTO)
 
     @property
     def device_state_attributes(self):
         """Return the device specific state attributes."""
         return {
-            ATTR_BATTERY_LEVEL: self._thermostat.battery_level
+            ATTR_BATTERY_LEVEL: self._thermostat.battery_level,
+            "model_type": self._thermostat.firmware_rev,
+            "target_high": self._thermostat.target_temperature_high,
+            "target_low": self._thermostat.target_temperature_low
         }
 
     def update(self):
