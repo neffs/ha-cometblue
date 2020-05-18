@@ -19,6 +19,7 @@ import logging
 from datetime import timedelta
 from datetime import datetime
 import voluptuous as vol
+from bluepy.btle import BTLEException
 
 from homeassistant.components.climate import ClimateDevice, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
@@ -178,9 +179,9 @@ class CometBlueThermostat(ClimateDevice):
             self._thermostat.should_update() or
             (self._lastupdate and self._lastupdate + MIN_TIME_BETWEEN_UPDATES < now)
         ):
-            _LOGGER.info("Updating status for {}".format(self._mac))
-            self._thermostat.update()
-            self._lastupdate = datetime.now()
-        else: 
-            _LOGGER.debug("Ignoring Update for {}".format(self._mac))
+            try:
+                self._thermostat.update()
+                self._lastupdate = datetime.now()
+            except BTLEException as ex:
+                _LOGGER.warning("Updating the state for {} failed: {}".format(self._mac, ex))
 
