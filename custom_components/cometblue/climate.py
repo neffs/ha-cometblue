@@ -21,7 +21,7 @@ from datetime import datetime
 import voluptuous as vol
 from bluepy.btle import BTLEException
 
-from homeassistant.components.climate import ClimateDevice, PLATFORM_SCHEMA
+from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
     HVAC_MODE_HEAT,
     HVAC_MODE_AUTO,
@@ -69,7 +69,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
 
 
-class CometBlueThermostat(ClimateDevice):
+class CometBlueThermostat(ClimateEntity):
     """Representation of a CometBlue thermostat."""
 
     def __init__(self, _mac, _name, _pin=None):
