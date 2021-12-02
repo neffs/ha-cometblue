@@ -53,9 +53,12 @@ ATTR_OFFSET = 'offset'
 ATTR_STATUS = 'status'
 ATTR_WINDOW_OPEN = 'window_open'
 
+CONF_FAKE_MANUAL = "fake_manual_mode"
+
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_MAC): cv.string,
     vol.Optional(CONF_PIN, default=0): cv.positive_int,
+    vol.Optional(CONF_FAKE_MANUAL, default=False): cv.boolean,
 })
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -72,6 +75,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     for name, device_cfg in config[CONF_DEVICES].items():
         dev = CometBlueThermostat(device_cfg[CONF_MAC], name, device_cfg[CONF_PIN])
         devices.append(dev)
+        if device_cfg[CONF_FAKE_MANUAL]:
+            dev.fake_manual_mode = True
 
     add_devices(devices)
 
@@ -87,6 +92,7 @@ class CometBlueThermostat(ClimateEntity):
         self._pin = _pin
         self._thermostat = CometBlue(_mac, _pin)
         self._lastupdate = datetime.now() - MIN_TIME_BETWEEN_UPDATES
+        self.fake_manual_mode = False
 
     @property
     def unique_id(self):
@@ -152,6 +158,9 @@ class CometBlueThermostat(ClimateEntity):
             temperature = kwargs.get(ATTR_TEMPERATURE)
             _LOGGER.debug("Temperature to set: {}".format(temperature))
             self._thermostat.target_temperature = temperature
+            if self.fake_manual_mode:
+                 self._thermostat.target_temperature_high = temperature
+                 self._thermostat.target_temperature_low = temperature
 
     @property
     def min_temp(self):
@@ -168,6 +177,8 @@ class CometBlueThermostat(ClimateEntity):
         if self._thermostat.is_off:
             return HVAC_MODE_OFF
         elif self._thermostat.manual_mode:
+            return HVAC_MODE_HEAT
+        elif self.fake_manual_mode:
             return HVAC_MODE_HEAT
         else:
             return HVAC_MODE_AUTO
@@ -189,9 +200,11 @@ class CometBlueThermostat(ClimateEntity):
 
     @property
     def hvac_modes(self):
-        if self._thermostat.firmware_rev == "GEN34BLE":
+        if self.fake_manual_mode:
+            return (HVAC_MODE_HEAT,)
+        elif self._thermostat.firmware_rev == "GEN34BLE":
             # GENIUS BLE 100 does not support manual mode
-            return HVAC_MODE_AUTO, HVAC_MODE_OFF
+            return (HVAC_MODE_AUTO,)
         else:
             return HVAC_MODE_HEAT, HVAC_MODE_AUTO, HVAC_MODE_OFF
 
