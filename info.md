@@ -20,7 +20,7 @@ climate cometblue:
     thermostat1:
       mac: 11:11:11:11:11:11
       pin: 000000
-			fake_manual_mode: False
+      fake_manual_mode: False
 ```
 
 Fake manual mode should be used with BLE 100 devices. 
