@@ -19,7 +19,6 @@ import logging
 from datetime import timedelta
 from datetime import datetime
 import voluptuous as vol
-from bluepy.btle import BTLEException
 
 from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
@@ -69,7 +68,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE
 
 
-def setup_platform(hass, config, add_devices, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     devices = []
 
     for name, device_cfg in config[CONF_DEVICES].items():
@@ -78,7 +77,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         if device_cfg[CONF_FAKE_MANUAL]:
             dev.fake_manual_mode = True
 
-    add_devices(devices)
+    async_add_entities(devices)
 
 
 class CometBlueThermostat(ClimateEntity):
@@ -148,7 +147,7 @@ class CometBlueThermostat(ClimateEntity):
         """Return the temperature we try to reach."""
         return self._thermostat.target_temperature
 
-    def set_temperature(self, **kwargs):
+    async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
         if ATTR_HVAC_MODE in kwargs:
             hvac_mode = kwargs.get(ATTR_HVAC_MODE)
@@ -183,7 +182,7 @@ class CometBlueThermostat(ClimateEntity):
         else:
             return HVAC_MODE_AUTO
 
-    def set_hvac_mode(self, hvac_mode):
+    async def async_set_hvac_mode(self, hvac_mode):
         if hvac_mode == self.hvac_mode:
             return
 
@@ -223,7 +222,7 @@ class CometBlueThermostat(ClimateEntity):
             "target_low": self._thermostat.target_temperature_low,
         }
 
-    def update(self):
+    async def async_update(self):
         """Update the data from the thermostat."""
         now = datetime.now()
         if ( 
@@ -231,7 +230,7 @@ class CometBlueThermostat(ClimateEntity):
             (self._lastupdate and self._lastupdate + MIN_TIME_BETWEEN_UPDATES < now)
         ):
             try:
-                self._thermostat.update()
+                await self._thermostat.update()
                 self._lastupdate = datetime.now()
-            except BTLEException as ex:
+            except Exception as ex:
                 _LOGGER.warning("Updating the state for {} failed: {}".format(self._mac, ex))
