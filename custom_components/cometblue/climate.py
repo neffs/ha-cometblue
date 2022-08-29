@@ -208,7 +208,7 @@ class CometBlueThermostat(ClimateEntity):
             return HVAC_MODE_HEAT, HVAC_MODE_AUTO, HVAC_MODE_OFF
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return the device specific state attributes."""
         return {
             ATTR_BATTERY_LEVEL: self._thermostat.battery_level,
