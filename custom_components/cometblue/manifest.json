@@ -4,6 +4,6 @@
   "documentation": "https://github.com/neffs/ha-cometblue",
   "dependencies": [],
   "codeowners": ["@neffs"],
-  "requirements": ["cometblue_lite==0.5.2"],
-  "version": "0.1.0"
+  "requirements": ["cometblue_lite==0.5.3"],
+  "version": "0.1.1"
 }
