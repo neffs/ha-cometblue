@@ -42,6 +42,10 @@ from homeassistant.const import (
 
 import homeassistant.helpers.config_validation as cv
 
+from homeassistant.components import bluetooth
+from homeassistant.core import HomeAssistant, async_get_hass
+
+
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(10)
 
@@ -79,6 +83,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     async_add_entities(devices)
 
+def device_getter(address):
+    hass = async_get_hass()
+    return bluetooth.async_ble_device_from_address(hass, address, connectable=True)
 
 class CometBlueThermostat(ClimateEntity):
     """Representation of a CometBlue thermostat."""
@@ -89,7 +96,7 @@ class CometBlueThermostat(ClimateEntity):
         self._mac = _mac
         self._name = _name
         self._pin = _pin
-        self._thermostat = CometBlue(_mac, _pin)
+        self._thermostat = CometBlue(_mac, _pin, device_getter=device_getter)
         self._lastupdate = datetime.now() - MIN_TIME_BETWEEN_UPDATES
         self.fake_manual_mode = False
 
