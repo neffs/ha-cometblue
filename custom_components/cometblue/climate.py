@@ -76,7 +76,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     devices = []
 
     for name, device_cfg in config[CONF_DEVICES].items():
-        dev = CometBlueThermostat(device_cfg[CONF_MAC], name, device_cfg[CONF_PIN])
+        dev = CometBlueThermostat(str(device_cfg[CONF_MAC]), name, int(device_cfg[CONF_PIN]))
         devices.append(dev)
         if device_cfg[CONF_FAKE_MANUAL]:
             dev.fake_manual_mode = True
