@@ -23,22 +23,20 @@ import voluptuous as vol
 from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
     ATTR_HVAC_MODE,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_OFF,
-    SUPPORT_TARGET_TEMPERATURE,
     DOMAIN,
+    ClimateEntityFeature,
+    HVACMode,
 )
 from homeassistant.const import (
-    CONF_NAME,
     CONF_MAC,
     CONF_PIN,
     CONF_DEVICES,
-    TEMP_CELSIUS,
     ATTR_TEMPERATURE,
     ATTR_BATTERY_LEVEL,
     ATTR_LOCKED,
-    PRECISION_HALVES)
+    PRECISION_HALVES,
+    UnitOfTemperature,
+)
 
 import homeassistant.helpers.config_validation as cv
 
@@ -69,7 +67,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         vol.Schema({cv.string: DEVICE_SCHEMA}),
 })
 
-SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE
+SUPPORT_FLAGS = ClimateEntityFeature.TARGET_TEMPERATURE
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -137,7 +135,7 @@ class CometBlueThermostat(ClimateEntity):
     @property
     def temperature_unit(self):
         """Return the unit of measurement that is used."""
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def precision(self):
@@ -181,25 +179,25 @@ class CometBlueThermostat(ClimateEntity):
     @property
     def hvac_mode(self):
         if self._thermostat.is_off:
-            return HVAC_MODE_OFF
+            return HVACMode.OFF
         elif self._thermostat.manual_mode:
-            return HVAC_MODE_HEAT
+            return HVACMode.HEAT
         elif self.fake_manual_mode:
-            return HVAC_MODE_HEAT
+            return HVACMode.HEAT
         else:
-            return HVAC_MODE_AUTO
+            return HVACMode.AUTO
 
     async def async_set_hvac_mode(self, hvac_mode):
         if hvac_mode == self.hvac_mode:
             return
 
         _LOGGER.debug("HVAC_MODE to set: {}".format(hvac_mode))
-        if self.hvac_mode == HVAC_MODE_OFF:
+        if self.hvac_mode == HVACMode.OFF:
             self._thermostat.is_off = False
 
-        if hvac_mode == HVAC_MODE_AUTO:
+        if hvac_mode == HVACMode.AUTO:
             self._thermostat.manual_mode = False
-        elif hvac_mode == HVAC_MODE_HEAT:
+        elif hvac_mode == HVACMode.HEAT:
             self._thermostat.manual_mode = True
         else:
             self._thermostat.is_off = True
@@ -207,12 +205,12 @@ class CometBlueThermostat(ClimateEntity):
     @property
     def hvac_modes(self):
         if self.fake_manual_mode:
-            return (HVAC_MODE_HEAT,)
+            return (HVACMode.HEAT,)
         elif self._thermostat.firmware_rev == "GEN34BLE":
             # GENIUS BLE 100 does not support manual mode
-            return (HVAC_MODE_AUTO,)
+            return (HVACMode.AUTO,)
         else:
-            return HVAC_MODE_HEAT, HVAC_MODE_AUTO, HVAC_MODE_OFF
+            return HVACMode.HEAT, HVACMode.AUTO, HVACMode.OFF
 
     @property
     def extra_state_attributes(self):
